@@ -347,7 +347,9 @@ class Doctrine_Import_Builder extends Doctrine_Builder
         }
 
         if (isset($definition['tableName']) && !empty($definition['tableName'])) {
-            $ret[$i] = "        ".'$this->setTableName(\''. $definition['tableName'].'\');';
+            $dbname = constant(strtoupper($definition['connection']));
+            $dbname = empty($dbname) ? '' : $dbname.'.';
+            $ret[$i] = "        ".'$this->setTableName(\''.$dbname. $definition['tableName'].'\');';
             $i++;
         }
 
