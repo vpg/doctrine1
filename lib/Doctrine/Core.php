@@ -1137,7 +1137,7 @@ class Doctrine_Core
             return true;
         }
         $autoload = false;
-        if (class_exists('Doctrine_Manager', false) && class_exists('Doctrine_Null', false)) {
+        if (class_exists('Doctrine_Manager', false) && class_exists('Doctrine_Record_Iterator', false)) {
             $autoload = Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES);
         }
         if (0 !== stripos($className, 'Doctrine') || class_exists($className, $autoload) || interface_exists($className, false)) {
