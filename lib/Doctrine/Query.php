@@ -2252,4 +2252,26 @@ class Doctrine_Query extends Doctrine_Query_Abstract implements Countable
         $this->_parsers = array();
         $this->_dqlParts = array();
     }
+    
+     /**
+    * Adds a where condition for checking a binary bit in a binary field
+    * @param $fieldName
+    * @param $position
+    *
+    * @return Doctrine_Query
+    */
+    public function andWhereFlagActive($fieldName, $position)
+    {
+      return parent::andWhere("( $fieldName & POW(2, $position) = POW(2, $position))");
+    }
+    /**
+    * @param $fieldName
+    * @param $position
+    *
+    * @return Doctrine_Query
+    */
+    public function andWhereFlagNotActive($fieldName, $position)
+    {
+      return parent::andWhere("( $fieldName & POW(2, $position) != POW(2, $position))");
+    }
 }
