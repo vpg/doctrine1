@@ -48,9 +48,9 @@ class Doctrine_Validator extends Doctrine_Locator_Injectable
     {
         if ( ! isset(self::$validators[$name])) {
             $class = 'Doctrine_Validator_' . ucwords(strtolower($name));
-            if (class_exists($class)) {
+            if (class_exists($class, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES))) {
                 self::$validators[$name] = new $class;
-            } else if (class_exists($name)) {
+            } else if (class_exists($name, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES))) {
                 self::$validators[$name] = new $name;
             } else {
                 throw new Doctrine_Exception("Validator named '$name' not available.");
