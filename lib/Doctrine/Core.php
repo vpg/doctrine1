@@ -1136,16 +1136,17 @@ class Doctrine_Core
 
             return true;
         }
-
-        if (0 !== stripos($className, 'Doctrine') || class_exists($className, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES)) || interface_exists($className, false)) {
+        $autoload = false;
+        if (class_exists('Doctrine_Manager', false) && class_exists('Doctrine_Null', false)) {
+            $autoload = Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES);
+        }
+        if (0 !== stripos($className, 'Doctrine') || class_exists($className, $autoload) || interface_exists($className, false)) {
             return false;
         }
 
         $class = self::getPath() . DIRECTORY_SEPARATOR . str_replace('_', DIRECTORY_SEPARATOR, $className) . '.php';
-
         if (file_exists($class)) {
             require $class;
-
             return true;
         }
 
