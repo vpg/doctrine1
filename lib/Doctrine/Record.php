@@ -1818,7 +1818,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         foreach ($modifiedFields as $field) {
             $type = $this->_table->getTypeOf($field);
 
-            if ($this->_data[$field] === self::$_null) {
+            if ($this->_data[$field] === self::$_null || is_null($this->_data[$field])) {
                 $a[$field] = null;
                 continue;
             }
