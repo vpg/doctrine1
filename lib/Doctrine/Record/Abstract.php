@@ -159,6 +159,17 @@ abstract class Doctrine_Record_Abstract extends Doctrine_Access
             }
  
             $this->_table->setOption('inheritanceMap', $mapColumnNames);
+            $submap=array();
+            foreach($map as $c => $m) {
+              if ($c!=$class and count(array_intersect($m, $map[$class]))==count($map[$class])) {
+                $submap[$c]=$m;
+              }
+            }
+            if (count($submap)) {
+              $mapFieldName = array_keys(end($submap));
+              $this->index($this->getTable()->getTableName().'_'.$mapFieldName[0], array('fields' => array($mapFieldName[0])));
+              $this->_table->setOption('subclasses', array_keys($map));
+            }
             return;
         } else {
             // Put an index on the key column
@@ -351,9 +362,9 @@ abstract class Doctrine_Record_Abstract extends Doctrine_Access
         if ( ! is_object($tpl)) {
             $className = 'Doctrine_Template_' . $tpl;
 
-            if (class_exists($className, true)) {
+            if (class_exists($className, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES))) {
                 $tpl = new $className($options);
-            } else if (class_exists($tpl, true)) {
+            } else if (class_exists($tpl, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES))) {
                 $tpl = new $tpl($options);
             } else {
                 throw new Doctrine_Record_Exception('Could not load behavior named: "' . $tpl . '"');
