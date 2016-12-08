@@ -306,7 +306,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable, Seriali
     public function initDefinition()
     {
         $name = $this->_options['name'];
-        if ( ! class_exists($name) || empty($name)) {
+        if ( ! class_exists($name, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES)) || empty($name)) {
             throw new Doctrine_Exception("Couldn't find class " . $name);
         }
         $record = new $name($this);
@@ -1044,7 +1044,7 @@ class Doctrine_Table extends Doctrine_Configurable implements Countable, Seriali
 
         $class = $this->getAttribute(Doctrine_Core::ATTR_QUERY_CLASS);
 
-        return Doctrine_Query::create(null, $class)
+        return Doctrine_Query::create($this->getConnection(), $class)
             ->from($this->getComponentName() . $alias);
     }
 
