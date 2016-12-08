@@ -488,7 +488,7 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
         if ( ! $found) {
             $class = 'Doctrine_Adapter_' . ucwords($e[0]);
 
-            if (class_exists($class)) {
+            if (class_exists($class,Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES))) {
                 $this->dbh = new $class($this->options['dsn'], $this->options['username'], $this->options['password'], $this->options);
             } else {
                 throw new Doctrine_Connection_Exception("Couldn't locate driver named " . $e[0]);
@@ -1685,12 +1685,7 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
 
         // If the final length is greater than 64 we need to create an abbreviated fk name
         if (strlen(sprintf($format, $generated)) > $maxLength) {
-            $generated = '';
-
-            foreach ($parts as $part) {
-                $generated .= $part[0];
-            }
-
+            $generated = 'sha'.sha1($generated);
             $name = $generated;
         } else {
             $name = $generated;
