@@ -267,7 +267,7 @@ class Doctrine_Relation_Parser
     {
         $conn = $this->_table->getConnection();
 
-        if (class_exists($template) && in_array('Doctrine_Template', class_parents($template))) {
+        if (class_exists($template, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES)) && in_array('Doctrine_Template', class_parents($template))) {
             $impl = $this->_table->getImpl($template);
 
             if ($impl === null) {
