@@ -143,7 +143,7 @@ class Doctrine_Locator implements Countable, IteratorAggregate
         } else {
             $className = $name;
 
-            if ( ! class_exists($className)) {
+            if ( ! class_exists($className, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES))) {
 
                 $name = explode('.', $name);
                 foreach ($name as &$v) {
@@ -153,7 +153,7 @@ class Doctrine_Locator implements Countable, IteratorAggregate
 
                 $className = $this->_classPrefix . $name;
 
-                if ( ! class_exists($className)) {
+                if ( ! class_exists($className, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES))) {
                     throw new Doctrine_Locator_Exception("Couldn't locate resource " . $className);
                 }
             }
