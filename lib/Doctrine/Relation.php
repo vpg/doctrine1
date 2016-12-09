@@ -31,7 +31,7 @@
  * @version     $Revision: 7490 $
  * @author      Konsta Vesterinen <kvesteri@cc.hut.fi>
  */
-abstract class Doctrine_Relation implements ArrayAccess
+abstract class Doctrine_Relation implements ArrayAccess, Serializable
 {
     /**
      * RELATION CONSTANTS
@@ -452,5 +452,34 @@ abstract class Doctrine_Relation implements ArrayAccess
         }
         $r[] = "</pre>";
         return implode("\n", $r);
+    }
+
+    public function serialize()
+    {
+      $definition = $this->definition;
+      foreach (array('table', 'localTable', 'refTable') as $table)
+      {
+        if (isset($definition[$table]) && $definition[$table] instanceOf Doctrine_Table)
+        {
+          $definition[$table] = $this->definition[$table]->getComponentName();
+        }
+      }
+      return serialize(array($definition,$this->_isRefClass));
+    }
+
+    public function unserialize($data)
+    {
+      list($this->definition,$this->_isRefClaas) = unserialize($data);
+    }
+
+    public function initializeFromCache(Doctrine_Connection $conn)
+    {
+      foreach (array('table', 'localTable', 'refTable') as $table)
+      {
+        if (isset($this->definition[$table]) && is_string($this->definition[$table]))
+        {
+          $this->definition[$table] = $conn->getTable($this->definition[$table]);
+        }
+      }
     }
 }

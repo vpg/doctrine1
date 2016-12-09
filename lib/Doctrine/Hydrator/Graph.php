@@ -312,6 +312,10 @@ abstract class Doctrine_Hydrator_Graph extends Doctrine_Hydrator_Abstract
                 $type = $table->getTypeOfColumn($last);
                 if ($type == 'integer' || $type == 'string') {
                     $cache[$key]['isSimpleType'] = true;
+                    if ($type == 'integer' && !(empty($value)))
+                    {
+                      $value = (int)$value;
+                    }
                 } else {
                     $cache[$key]['type'] = $type;
                     $cache[$key]['isSimpleType'] = false;

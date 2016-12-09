@@ -64,8 +64,8 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
      * @var array $tables                       an array containing all the initialized Doctrine_Table objects
      *                                          keys representing Doctrine_Table component names and values as Doctrine_Table objects
      */
-    protected $tables           = array();
-
+    protected static $tables           = array();
+    protected static $md5Tables        = array();
     /**
      * $_name
      *
@@ -773,6 +773,40 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
     }
 
     /**
+     * Convert string containing an int to a real int
+     *
+     * @param $params
+     * @return mixed
+     */
+    public function convertIntegers($params)
+    {
+      if (is_array($params))
+      {
+        foreach ($params as $k => $v)
+        {
+          if (gettype($v) == 'string')
+          {
+            if (ctype_digit($v) && $v[0] != '0' && (int) $v > 9)
+            {
+              $params[$k] = (int) $v;
+            }
+          }
+        }
+      }
+      else
+      {
+        if (gettype($params) == 'string')
+        {
+          if (ctype_digit($params) && $params[0] != '0' && (int) $params > 9)
+          {
+            $params = (int) $params;
+          }
+        }
+      }
+      return $params;
+    }
+
+    /**
      * quote
      * quotes given input parameter
      *
@@ -1011,7 +1045,15 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
         try {
             if ( ! empty($params)) {
                 $stmt = $this->prepare($query);
-                $stmt->execute($params);
+                if ($this->dbh instanceOf PDO && !empty($params))
+                {
+                  $this->bindValues($stmt, $params);
+                  $stmt->execute(array());
+                }
+                else
+                {
+                  $stmt->execute($params);
+                }
 
                 return $stmt;
             } else {
@@ -1033,6 +1075,44 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
         $this->rethrowException($e, $this, $query);
     }
 
+    protected function getPDOType($value=null)
+    {
+      switch (gettype($value))
+      {
+        case 'integer': return PDO::PARAM_INT;
+        case 'boolean': return PDO::PARAM_BOOL;
+        case 'NULL'   : return PDO::PARAM_NULL;
+        case 'string' :
+          if (ctype_digit($value) && $value[0] != '0' && (int) $value > 9)
+          {
+            return PDO::PARAM_INT;
+          }
+        default:
+          return PDO::PARAM_STR;
+      }
+    }
+
+    protected function getPDOValue($type, $value=null)
+    {
+      switch ($type)
+      {
+        case PDO::PARAM_INT:
+          return (int) $value;
+        default:
+          return $value;
+      }
+    }
+
+    protected function bindValues($stmt, array $params = array())
+    {
+      $i=1;
+      foreach ($params as $key => $value)
+      {
+        $type = $this->getPDOType($value);
+        $stmt->bindValue($i, $this->getPDOValue($type, $value), $type);
+        $i++;
+      }
+    }
     /**
      * exec
      * @param string $query     sql query
@@ -1047,8 +1127,15 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
         try {
             if ( ! empty($params)) {
                 $stmt = $this->prepare($query);
-                $stmt->execute($params);
-
+                if ($this->dbh instanceOf PDO && !empty($params))
+                {
+                  $this->bindValues($stmt, $params);
+                  $stmt->execute(array());
+                }
+                else
+                {
+                  $stmt->execute($params);
+                }
                 return $stmt->rowCount();
             } else {
                 $event = new Doctrine_Event($this, Doctrine_Event::CONN_EXEC, $query, $params);
@@ -1109,7 +1196,28 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
      */
     public function hasTable($name)
     {
-        return isset($this->tables[$name]);
+        return isset(self::$tables[$name]);
+    }
+
+
+    public function saveTables()
+    {
+      $hasTableCache = $this->_tableCache !== false && ($this->_tableCache || $this->getAttribute(Doctrine_Core::ATTR_TABLE_CACHE));
+      if ($hasTableCache)
+      {
+        $tableCacheDriver = $this->getTableCacheDriver();
+        foreach (self::$md5Tables as $name => $md5)
+        {
+          $serialize = serialize(self::$tables[$name]);
+          if (md5($serialize) !== $md5)
+          {
+            $hash = md5($name . 'DOCTRINE_TABLE_CACHE_SALT');
+            // Save cached query
+            $tableCacheDriver->save($hash, $serialize, $this->getTableCacheLifeSpan());
+            unset(self::$md5Tables[$name]);
+          }
+        }
+      }
     }
 
     /**
@@ -1120,8 +1228,8 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
      */
     public function getTable($name)
     {
-        if (isset($this->tables[$name])) {
-            return $this->tables[$name];
+        if (isset(self::$tables[$name])) {
+            return self::$tables[$name];
         }
 
         $hasTableCache = $this->_tableCache !== false && ($this->_tableCache || $this->getAttribute(Doctrine_Core::ATTR_TABLE_CACHE));
@@ -1131,10 +1239,11 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
             $cached = $tableCacheDriver->fetch($hash);
 
             if ($cached) {
+
+                self::$md5Tables[$name] = md5($cached);
                 $table = unserialize($cached);
                 $table->initializeFromCache($this);
-
-                return $this->tables[$name] = $table;
+                return $table;
             }
         }
 
@@ -1152,7 +1261,6 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
             // Save cached query
             $tableCacheDriver->save($hash, serialize($table), $this->getTableCacheLifeSpan());
         }
-
         return $table;
     }
 
@@ -1163,7 +1271,7 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
      */
     public function getTables()
     {
-        return $this->tables;
+        return self::$tables;
     }
 
     /**
@@ -1180,7 +1288,7 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
      */
     public function getIterator()
     {
-        return new ArrayIterator($this->tables);
+        return new ArrayIterator(self::$tables);
     }
 
     /**
@@ -1204,10 +1312,10 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
     {
         $name = $table->getComponentName();
 
-        if (isset($this->tables[$name])) {
+        if (isset(self::$tables[$name])) {
             return false;
         }
-        $this->tables[$name] = $table;
+        self::$tables[$name] = $table;
 
         return true;
     }
@@ -1263,9 +1371,13 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
      */
     public function clear()
     {
-        foreach ($this->tables as $k => $table) {
-            $table->getRepository()->evictAll();
-            $table->clear();
+        foreach (self::$tables as $k => $table) {
+            if ($table && $table->getRepository()) {
+                $table->getRepository()->evictAll();
+                $table->clear();
+            } else {
+                error_log("Clear on a non object : " . $table->name );
+            }
         }
     }
 
@@ -1277,7 +1389,7 @@ abstract class Doctrine_Connection extends Doctrine_Configurable implements Coun
      */
     public function evictTables()
     {
-        $this->tables = array();
+        self::$tables = array();
         $this->exported = array();
     }
 

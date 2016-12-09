@@ -714,9 +714,9 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         $tmp = $data;
         $data = array();
 
-        foreach ($this->getTable()->getFieldNames() as $fieldName) {
+        foreach ($this->_table->getFieldNames() as $fieldName) {
             if (isset($tmp[$fieldName])) {
-                $data[$fieldName] = $tmp[$fieldName];
+                $data[$fieldName] = $this->_table->prepareValueForSearch($fieldName,$tmp[$fieldName]);
             } else if (array_key_exists($fieldName, $tmp)) {
                 $data[$fieldName] = null;
             } else if ( !isset($this->_data[$fieldName])) {
@@ -772,7 +772,7 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                 }
                 if ($exists) {
                     if (isset($this->_data[$name]) && $this->_data[$name] !== self::$_null) {
-                        $this->_id[$name] = $this->_data[$name];
+                         $this->_id[$name] = $this->_table->prepareValueForSearch($name, $this->_data[$name]);
                     }
                 }
                 break;
@@ -783,7 +783,15 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                     if ($this->_data[$name] === self::$_null) {
                         $this->_id[$name] = null;
                     } else {
-                        $this->_id[$name] = $this->_data[$name];
+                        $type = $this->_table->getTypeOf($name);
+                        switch ($type)
+                        {
+                          case 'integer':
+                            $this->_id[$name] = (int) $this->_data[$name];
+                          break;
+                          default:
+                            $this->_id[$name] = $this->_data[$name];
+                        }
                     }
                 }
                 break;
@@ -1845,10 +1853,28 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
                     if ($this->_data[$field] instanceof Doctrine_Record) {
                         $a[$field] = $this->_data[$field]->getIncremented();
                         if ($a[$field] !== null) {
+                          switch ($type)
+                          {
+                            case 'integer':
+                              $a[$field] = (int)$a[$field];
+                            break;
+                            case 'float':
+                              $a[$field] = (float)$a[$field];
+                            break;
+                          }
                             $this->_data[$field] = $a[$field];
                         }
                     } else {
                         $a[$field] = $this->_data[$field];
+                    }
+                    switch ($type)
+                    {
+                      case 'integer':
+                        $a[$field] = (int)$a[$field];
+                      break;
+                      case 'float':
+                        $a[$field] = (float)$a[$field];
+                      break;
                     }
                     /** TODO:
                     if ($this->_data[$v] === null) {
@@ -2244,11 +2270,13 @@ abstract class Doctrine_Record extends Doctrine_Record_Abstract implements Count
         } else {
             if (is_array($id)) {
                 foreach ($id as $fieldName => $value) {
+                    $value = $this->_table->prepareValueForSearch($fieldName, $value);
                     $this->_id[$fieldName] = $value;
                     $this->_data[$fieldName] = $value;
                 }
             } else {
                 $name = $this->_table->getIdentifier();
+                $id = $this->_table->prepareValueForSearch($name, $id);
                 $this->_id[$name] = $id;
                 $this->_data[$name] = $id;
             }

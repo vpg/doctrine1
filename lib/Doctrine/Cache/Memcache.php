@@ -105,7 +105,7 @@ class Doctrine_Cache_Memcache extends Doctrine_Cache_Driver
      */
     protected function _doSave($id, $data, $lifeTime = false)
     {
-        if ($this->_options['compression']) {
+        if (!empty($this->_options['compression']) && is_int($this->_options['compression'])) {
             $flag = MEMCACHE_COMPRESSED;
         } else {
             $flag = 0;
