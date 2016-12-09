@@ -179,6 +179,10 @@ class Doctrine_Collection extends Doctrine_Access implements Countable, Iterator
             $this->$name = $values;
         }
 
+        if (!isset($this->_table)) {
+            return false;
+        }
+
         $this->_table = $connection->getTable($this->_table);
 
         $keyColumn = isset($array['keyColumn']) ? $array['keyColumn'] : null;

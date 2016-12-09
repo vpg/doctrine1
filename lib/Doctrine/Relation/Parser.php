@@ -31,7 +31,7 @@
  * @since       1.0
  * @todo Composite key support?
  */
-class Doctrine_Relation_Parser
+class Doctrine_Relation_Parser implements Serializable
 {
     /**
      * @var Doctrine_Table $_table          the table object this parser belongs to
@@ -54,6 +54,11 @@ class Doctrine_Relation_Parser
      * @param Doctrine_Table $table         the table object this parser belongs to
      */
     public function __construct(Doctrine_Table $table)
+    {
+      $this->setTable($table);
+    }
+
+    public function setTable(Doctrine_Table $table)
     {
         $this->_table = $table;
     }
@@ -139,8 +144,12 @@ class Doctrine_Relation_Parser
         }
 
         if ($this->hasRelation($alias)) {
+          if (!isset($options['fromCache']))
+          {
             unset($this->_relations[$alias]);
             unset($this->_pending[$alias]);
+          }
+          else return;
         }
 
         $this->_pending[$alias] = array_merge($options, array('class' => $name, 'alias' => $alias));
@@ -226,7 +235,7 @@ class Doctrine_Relation_Parser
             }
             if (isset($rel)) {
                 // unset pending relation
-                unset($this->_pending[$alias]);
+                //unset($this->_pending[$alias]);
                 $this->_relations[$alias] = $rel;
                 return $rel;
             }
@@ -267,7 +276,7 @@ class Doctrine_Relation_Parser
     {
         $conn = $this->_table->getConnection();
 
-        if (class_exists($template) && in_array('Doctrine_Template', class_parents($template))) {
+        if (class_exists($template,Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES)) && in_array('Doctrine_Template', class_parents($template))) {
             $impl = $this->_table->getImpl($template);
 
             if ($impl === null) {
@@ -535,5 +544,23 @@ class Doctrine_Relation_Parser
             }
         }
         return $def;
+    }
+
+    public function serialize()
+    {
+      return serialize(array($this->_pending,$this->_relations));
+    }
+
+    public function unserialize($data)
+    {
+      list($this->_pending,$this->_relations) = unserialize($data);
+    }
+
+    public function initializeFromCache(Doctrine_Connection $conn)
+    {
+      foreach ($this->_relations as $k => $r)
+      {
+        $r->initializeFromCache($conn);
+      }
     }
 }

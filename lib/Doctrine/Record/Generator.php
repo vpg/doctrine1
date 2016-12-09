@@ -161,12 +161,15 @@ abstract class Doctrine_Record_Generator extends Doctrine_Record_Abstract
         }
 
         // check that class doesn't exist (otherwise we cannot create it)
-        if ($this->_options['generateFiles'] === false && class_exists($this->_options['className'])) {
-            $this->_table = Doctrine_Core::getTable($this->_options['className']);
-            return false;
+        $returnFalse = false;
+        if ($this->_options['generateFiles'] === false &&
+            class_exists($this->_options['className'], Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES))
+        ) {
+          $this->_table = Doctrine_Core::getTable($this->_options['className']);
+          $returnFalse = true;
+        } else {
+          $this->buildTable();
         }
-
-        $this->buildTable();
 
         $fk = $this->buildForeignKeys($this->_options['table']);
 
@@ -177,11 +180,20 @@ abstract class Doctrine_Record_Generator extends Doctrine_Record_Abstract
         $this->setTableDefinition();
         $this->setUp();
 
-        $this->generateClassFromTable($this->_table);
-
-        $this->buildChildDefinitions();
-
-        $this->_table->initIdentifier();
+        if (!$returnFalse) {
+  
+          $this->generateClassFromTable($this->_table);
+          $this->buildChildDefinitions();
+  
+          $this->_table->initIdentifier();
+        }
+        $conn = $this->_options['table']->getConnection();
+        foreach (ProjectConfiguration::getActive()->getAllConnections($conn) as $c) {
+          Doctrine_Manager::getInstance()->getConnection($c)->addTable($this->_options['table']);
+        }
+        if ($returnFalse) {
+          return false;
+        }
     }
 
     /**
@@ -224,7 +236,9 @@ abstract class Doctrine_Record_Generator extends Doctrine_Record_Abstract
 
         $this->_table->setOptions($newOptions);
 
-        $conn->addTable($this->_table);
+        foreach (ProjectConfiguration::getActive()->getAllConnections($conn) as $c) {
+           Doctrine_Manager::getInstance()->getConnection($c)->addTable($this->_table);
+        }
     }
 
     /** 

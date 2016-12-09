@@ -274,7 +274,13 @@ class Doctrine_Export extends Doctrine_Connection_Module
 
             foreach ((array) $options['foreignKeys'] as $k => $definition) {
                 if (is_array($definition)) {
-                    $sql[] = $this->createForeignKeySql($name, $definition);
+                    $ftable = explode('.',$definition['foreignTable']);
+                    $dbname = $ftable[0];
+                    $constraintname = $this->conn->formatter->getForeignKeyName($definition['name']);
+                    echo "\n\n $dbname - $constraintname \n\n";
+                    if(strpos($constraintname,$dbname)===0) {
+                        $sql[] = $this->createForeignKeySql($name, $definition);
+                    }
                 }
             }
         }

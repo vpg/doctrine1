@@ -668,7 +668,7 @@ class Doctrine_Core
                             $className = $classPrefix . $className;
                         }
 
-                        if ( ! class_exists($className, false)) {
+                        if ( ! class_exists($className, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES) )) {
                             if ($modelLoading == Doctrine_Core::MODEL_LOADING_CONSERVATIVE || $modelLoading == Doctrine_Core::MODEL_LOADING_PEAR) {
                                 self::loadModel($className, $file->getPathName());
 
@@ -807,7 +807,7 @@ class Doctrine_Core
             $class = get_class($class);
         }
 
-        if (is_string($class) && class_exists($class)) {
+        if (is_string($class) && class_exists($class, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES))) {
             $class = new ReflectionClass($class);
         }
 
@@ -1136,16 +1136,17 @@ class Doctrine_Core
 
             return true;
         }
-
-        if (0 !== stripos($className, 'Doctrine') || class_exists($className, false) || interface_exists($className, false)) {
+        $autoload = false;
+        if (class_exists('Doctrine_Manager', false) && class_exists('Doctrine_Record_Iterator', false)) {
+            $autoload = Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES);
+        }
+        if (0 !== stripos($className, 'Doctrine') || class_exists($className, $autoload) || interface_exists($className, false)) {
             return false;
         }
 
         $class = self::getPath() . DIRECTORY_SEPARATOR . str_replace('_', DIRECTORY_SEPARATOR, $className) . '.php';
-
         if (file_exists($class)) {
             require $class;
-
             return true;
         }
 
@@ -1154,7 +1155,7 @@ class Doctrine_Core
 
     public static function modelsAutoload($className)
     {
-        if (class_exists($className, false) || interface_exists($className, false)) {
+        if (class_exists($className, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES)) || interface_exists($className, false)) {
             return false;
         }
 
@@ -1187,7 +1188,7 @@ class Doctrine_Core
      */
     public static function extensionsAutoload($className)
     {
-        if (class_exists($className, false) || interface_exists($className, false)) {
+        if (class_exists($className, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES)) || interface_exists($className, false)) {
             return false;
         }
 

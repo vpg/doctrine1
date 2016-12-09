@@ -937,9 +937,11 @@ abstract class Doctrine_Query_Abstract
     {
         // Apply boolean conversion in DQL params
         $params = $this->_conn->convertBooleans($params);
+        $params = $this->_conn->convertIntegers($params);
 
         foreach ($this->_params as $k => $v) {
             $this->_params[$k] = $this->_conn->convertBooleans($v);
+            $this->_params[$k] = $this->_conn->convertIntegers($this->_params[$k]);
         }
 
         $dqlParams = $this->getFlattenedParams($params);

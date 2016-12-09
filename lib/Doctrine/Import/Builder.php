@@ -341,13 +341,17 @@ class Doctrine_Import_Builder extends Doctrine_Builder
 
         $i = 0;
 
+        $definition = array_merge( array('connection' => ''), $definition);
+
         if (isset($definition['inheritance']['type']) && $definition['inheritance']['type'] == 'concrete') {
             $ret[$i] = "        parent::setTableDefinition();";
             $i++;
         }
 
         if (isset($definition['tableName']) && !empty($definition['tableName'])) {
-            $ret[$i] = "        ".'$this->setTableName(\''. $definition['tableName'].'\');';
+            $dbname = defined(strtoupper($definition['connection'])) ? constant(strtoupper($definition['connection'])) : '';
+            $dbname = empty($dbname) ? '' : $dbname.'.';
+            $ret[$i] = "        ".'$this->setTableName(\''.$dbname. $definition['tableName'].'\');';
             $i++;
         }
 
@@ -1134,14 +1138,20 @@ class Doctrine_Import_Builder extends Doctrine_Builder
         }
 
         $setUpCode.= $this->buildToString($definition);
-
-        $docs = PHP_EOL . $this->buildPhpDocs($definition);
+        if (ENV == 'dev')
+        {
+          $docs = PHP_EOL . $this->buildPhpDocs($definition);
+        }
+        else
+        {
+          $docs = PHP_EOL;
+        }
 
         $content = sprintf(self::$_tpl, $docs, $abstract,
-            $className,
-            $extends,
-            $tableDefinitionCode,
-            $setUpCode);
+                                       $className,
+                                       $extends,
+                                       $tableDefinitionCode,
+                                       $setUpCode);
 
         return $content;
     }

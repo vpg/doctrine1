@@ -312,6 +312,10 @@ abstract class Doctrine_Hydrator_Graph extends Doctrine_Hydrator_Abstract
                 $type = $table->getTypeOfColumn($last);
                 if ($type == 'integer' || $type == 'string') {
                     $cache[$key]['isSimpleType'] = true;
+                    if ($type == 'integer' && !(empty($value)))
+                    {
+                      $value = (int)$value;
+                    }
                 } else {
                     $cache[$key]['type'] = $type;
                     $cache[$key]['isSimpleType'] = false;
@@ -401,7 +405,7 @@ abstract class Doctrine_Hydrator_Graph extends Doctrine_Hydrator_Abstract
             return $component;
         }
 
-        $matchedComponents = array($component);
+        $matchedComponents = array($component => 0);
         foreach ($subclasses as $subclass) {
             $table = Doctrine_Core::getTable($subclass);
             $inheritanceMap = $table->getOption('inheritanceMap');
@@ -414,7 +418,7 @@ abstract class Doctrine_Hydrator_Graph extends Doctrine_Hydrator_Abstract
                     }
                 }
                 if ($needMatches == 0) {
-                    $matchedComponents[] = $table->getComponentName();
+		            $matchedComponents[$table->getComponentName()] = count($inheritanceMap);
                 }
             } else {
                 list($key, $value) = each($inheritanceMap);
@@ -422,13 +426,17 @@ abstract class Doctrine_Hydrator_Graph extends Doctrine_Hydrator_Abstract
                 if ( ! isset($data[$key]) || $data[$key] != $value) {
                     continue;
                 } else {
-                    $matchedComponents[] = $table->getComponentName();
+                    $matchedComponents[$table->getComponentName()] = 1;
                 }
             }
         }
 
-        $matchedComponent = $matchedComponents[count($matchedComponents)-1];
-
+        if (count($matchedComponents)>1) {
+          asort($matchedComponents);
+        }
+        $matchedComponents = array_keys($matchedComponents);
+        $matchedComponent = end($matchedComponents);
+        
         if ( ! isset($this->_tables[$matchedComponent])) {
             $this->_tables[$matchedComponent] = Doctrine_Core::getTable($matchedComponent);
         }

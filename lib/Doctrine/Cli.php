@@ -317,7 +317,7 @@ class Doctrine_Cli
             }
 
             //So was the expected class included, and is it a task?  If so, we'll let the calling function know.
-            if (class_exists($expectedClassName, false) && $this->classIsTask($expectedClassName)) {
+            if (class_exists($expectedClassName, Doctrine_Manager::getInstance()->getAttribute(Doctrine_Core::ATTR_AUTOLOAD_TABLE_CLASSES)) && $this->classIsTask($expectedClassName)) {
                 $taskClassesIncluded[] = $expectedClassName;
             }
         }
